@@ -5,7 +5,7 @@ body {
     margin: 0;
     padding: 0;
     font-family: 'Your Custom Font', sans-serif;
-    background: url('/home/unifo/Downloads/bg.jpg') center/cover no-repeat; /* Update the path */
+    background: url('./images/bg.jpg') center/cover no-repeat; /* Update the path */
     height: 100vh;
   }
   

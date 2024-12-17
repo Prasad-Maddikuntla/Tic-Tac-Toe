@@ -6,6 +6,7 @@ import ProtectedRoute from './components/PrivateRoute';
 
 // App.js
 import React, { useState, useEffect } from 'react';
+import TicTacToe from './components/tic-tac-toe';
 
 
 const App = () => {
@@ -23,6 +24,7 @@ const App = () => {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/afterlogin" element={<AfterLoginPage />} />
+        <Route path="/TicTacToe" element={<TicTacToe/>} />
         {/* <ProtectedRoute
           path="/afterlogin"
           element={<AfterLoginPage />}

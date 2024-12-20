@@ -1,5 +1,6 @@
-const domain = process.env.REACT_APP_DOMAIN;
-console.log("domain:", domain);
+import { config } from "../config";
+
+const {domain} =  config
 
 const userApiCalls = {
   getAllUsers: async () => {

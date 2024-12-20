@@ -6,7 +6,10 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import messageSentSound from '../sounds/iphone-message-sound-effect.mp3';
 import messageReceivedSound from '../sounds/notification_o14egLP.mp3';
 import io from 'socket.io-client';
-const socket = io(process.env.REACT_APP_DOMAIN); // Replace with your backend server URL
+import { config } from '../config';
+
+const { domain } = config
+const socket = io(domain); // Replace with your backend server URL
 
 
 const ChatBoard = ({ loggedInUser, selectedUser, setSelectedUser }) => {

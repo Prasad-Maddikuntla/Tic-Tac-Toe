@@ -5,29 +5,19 @@ import { Container, Typography, TextField, Button, Paper, IconButton } from '@mu
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import messageSentSound from '../sounds/iphone-message-sound-effect.mp3';
 import messageReceivedSound from '../sounds/notification_o14egLP.mp3';
-import io from 'socket.io-client';
-import { config } from '../config';
-
-const { domain } = config
-const socket = io(domain); // Replace with your backend server URL
+// import { socket } from './soketConnection';
 
 
-const ChatBoard = ({ loggedInUser, selectedUser, setSelectedUser }) => {
-  // const [loggedInUserMessages, setLoggedInUserMessages] = useState([]);
+
+const ChatBoard = ({ loggedInUser,socket, selectedUser, setSelectedUser }) => {
   const [messageContainer, setMessageContainer] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef(null);
   const messageSentAudio = new Audio(messageSentSound);
   const messageReceivedAudio = new Audio(messageReceivedSound);
 
-  useEffect(() => {
-    socket.emit('joinRoom', loggedInUser); // Assuming loggedInUser is the username
-  }, [loggedInUser]);
-
+  
   const handleSendMessage = () => {
-    // if (newMessage.trim() === '') {
-    //   return;
-    // }
 
     const messageData = {
        user: loggedInUser, 
@@ -39,29 +29,20 @@ const ChatBoard = ({ loggedInUser, selectedUser, setSelectedUser }) => {
 
     socket.emit('sendMessage', messageData);
 
-    // const newLoggedInUserMessages = [...loggedInUserMessages, messageData];
     setMessageContainer([...messageContainer,messageData]);
-    messageSentAudio.play();
+    // messageSentAudio.play();
     setNewMessage('');
     scrollToBottom();
   };
 
   useEffect(() => {
-    // Handle receiving messages from the server
     socket.on('receiveMessage', (data) => {
       setMessageContainer([...messageContainer, data]);
       console.log('receiveMessage',data)
-      messageReceivedAudio.play()
+      // messageReceivedAudio.play()
       scrollToBottom();
     });
 
-    // Simulate an initial message when the chat starts
-    // simulateReply();
-
-    // return () => {
-    //   // Clean up socket connection on component unmount
-    //   socket.disconnect();
-    // };
   }, [messageContainer, socket]);
 
   const scrollToBottom = () => {

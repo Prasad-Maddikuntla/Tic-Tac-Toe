@@ -3,6 +3,10 @@ import { Container, Typography, Button, Paper, List, ListItem, ListItemText, Ava
 import { useNavigate } from 'react-router-dom';
 import ChatBoard from './ChatBoard';
 import userApiCalls from './APIcalls';
+import { getSocketConnections } from './soketConnection';
+
+
+
 
 const AfterLoginPage = () => {
   const navigate = useNavigate();
@@ -11,13 +15,9 @@ const AfterLoginPage = () => {
   const [userDetails, setUserDetails] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [socket, setSocket] = useState(true);
 
-  useEffect(() => {
-    const details = JSON.parse(localStorage.getItem('userDetails'))
-   
-    setUserDetails(details);
 
-  }, []);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -32,14 +32,18 @@ const AfterLoginPage = () => {
       }
     };
 
+    const details = JSON.parse(localStorage.getItem('userDetails'))
+    setUserDetails(details);
+    setSocket(getSocketConnections());
+
     fetchUserData();
   }, []);
 
 
 
   const handleLogout = () => {
-    // Perform logout logic (clear user session, etc.)
-    // For simplicity, we'll just navigate back to the login page
+    localStorage.removeItem('jwtToken');
+    socket.emit('sendMessage');
     navigate('/');
   };
 
@@ -55,7 +59,7 @@ const AfterLoginPage = () => {
   const filteredUsers = userListData?.filter((user) => user.username?.toLowerCase().includes(searchQuery.toLowerCase()));
 
   if (selectedUser) {
-    return <ChatBoard setSelectedUser={setSelectedUser} loggedInUser={userDetails.username} selectedUser={selectedUser} />;
+    return <ChatBoard socket={socket} setSelectedUser={setSelectedUser} loggedInUser={userDetails.username} selectedUser={selectedUser} />;
   }
 
   return (

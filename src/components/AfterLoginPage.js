@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import ChatBoard from './ChatBoard';
 import userApiCalls from './APIcalls';
 import { getSocketConnections } from './soketConnection';
+import NotificationPopover from './NotificationBar';
+import { useAuth } from './Context';
 
 
 
@@ -16,6 +18,7 @@ const AfterLoginPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [socket, setSocket] = useState(true);
+  const {setUser} = useAuth()
 
 
 
@@ -35,7 +38,7 @@ const AfterLoginPage = () => {
     const details = JSON.parse(localStorage.getItem('userDetails'))
     setUserDetails(details);
     setSocket(getSocketConnections());
-
+    setUser(details.username);
     fetchUserData();
   }, []);
 
@@ -43,7 +46,7 @@ const AfterLoginPage = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('jwtToken');
-    socket.emit('sendMessage');
+    // socket.emit('disconnect',);
     navigate('/');
   };
 
@@ -64,6 +67,7 @@ const AfterLoginPage = () => {
 
   return (
     <Container maxWidth="md" className="container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '90vh', padding: '30px', position: 'relative' }}>
+      <NotificationPopover />
       <Paper elevation={5} style={{ padding: '20px', marginTop: '20px', borderRadius: '15px', backgroundColor: 'rgba(255, 255, 255, 0.8)', width: '100%', height: '90vh' }}>
         <Typography variant="h4" style={{ marginBottom: '20px', color: '#4E3629' }}>
           Welcome to the Chat App!

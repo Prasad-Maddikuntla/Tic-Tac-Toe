@@ -1,57 +1,76 @@
-// frontend/ChatBoard.js
-
-import React, { useState, useEffect, useRef } from 'react';
-import { Container, Typography, TextField, Button, Paper, IconButton } from '@mui/material';
+import React, { useState, useEffect, useRef, } from 'react';
+import { Container, Typography, TextField, Button, Paper, IconButton, Alert } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import messageSentSound from '../sounds/iphone-message-sound-effect.mp3';
-import messageReceivedSound from '../sounds/notification_o14egLP.mp3';
-// import { socket } from './soketConnection';
+import { useNavigate } from 'react-router-dom'; // Assuming React Router is used
+import NotificationPopover from './NotificationBar';
+import { useAuth } from './Context';
 
-
-
-const ChatBoard = ({ loggedInUser,socket, selectedUser, setSelectedUser }) => {
+const ChatBoard = ({ loggedInUser, socket, selectedUser, setSelectedUser }) => {
   const [messageContainer, setMessageContainer] = useState([]);
   const [newMessage, setNewMessage] = useState('');
+  const [gameRequestSent, setGameRequestSent] = useState(false);
+  const [gameRequestAccepted, setGameRequestAccepted] = useState(false);
   const messagesEndRef = useRef(null);
-  const messageSentAudio = new Audio(messageSentSound);
-  const messageReceivedAudio = new Audio(messageReceivedSound);
+  const navigate = useNavigate();
+  const {setOpponent, setHeads } = useAuth()
 
-  
+  const { setTargetUser } = useAuth()
+
   const handleSendMessage = () => {
-
     const messageData = {
-       user: loggedInUser, 
-       text: newMessage,
-        timestamp: new Date(),
-        targetUser: selectedUser.username,
-        sentBy : 'loggedInUser'
-       };
+      user: loggedInUser,
+      text: newMessage,
+      timestamp: new Date(),
+      targetUser: selectedUser.username,
+      sentBy: 'loggedInUser',
+    };
 
     socket.emit('sendMessage', messageData);
-
-    setMessageContainer([...messageContainer,messageData]);
-    // messageSentAudio.play();
+    setMessageContainer([...messageContainer, messageData]);
     setNewMessage('');
     scrollToBottom();
+  };
+
+  const handleSendGameRequest = () => {
+    const requestData = {
+      sender: loggedInUser,
+      targetUser: selectedUser.username,
+      timestamp: new Date(),
+    };
+
+    socket.emit('sendGameRequest', requestData);
+    setGameRequestSent(true);
+    setOpponent(selectedUser.username)
   };
 
   useEffect(() => {
     socket.on('receiveMessage', (data) => {
       setMessageContainer([...messageContainer, data]);
-      console.log('receiveMessage',data)
-      // messageReceivedAudio.play()
       scrollToBottom();
+      setTargetUser(selectedUser)
     });
 
-  }, [messageContainer, socket]);
+    socket.on('gameRequestAccepted', (data) => {
+        setGameRequestAccepted(true);
+        setOpponent(data.responseUser);
+        setHeads(true)
+        setTimeout(() => navigate('/TicTacToe'), 1000); // Redirect after 1 second
+    });
+
+    socket.on('gameRequestDeclined', (data) => {
+      setGameRequestAccepted(false);
+      // setOpponent(data.responseUser);
+      // setTimeout(() => navigate('/tic-tac-toe'), 1000); // Redirect after 1 second
+  });
+  }, [messageContainer, socket, loggedInUser, selectedUser, navigate]);
 
   const scrollToBottom = () => {
     messagesEndRef?.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-
   return (
     <div style={{ height: '100vh', overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      <NotificationPopover />
       <Container
         maxWidth="md"
         style={{
@@ -93,35 +112,47 @@ const ChatBoard = ({ loggedInUser,socket, selectedUser, setSelectedUser }) => {
               zIndex: 1,
             }}
           >
-           {loggedInUser} Chat with {selectedUser.username}
+            {loggedInUser} Chat with {selectedUser.username}
           </Typography>
 
+          {gameRequestSent && <Alert severity="info">Game request sent to {selectedUser.username}!</Alert>}
+          {gameRequestAccepted && <Alert severity="success">Game request accepted! Redirecting...</Alert>}
+
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={handleSendGameRequest}
+            style={{ marginBottom: '20px' }}
+            disabled={gameRequestSent}
+          >
+            {gameRequestSent ? 'Request Sent' : 'Send Game Request'}
+          </Button>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto' }}>
-          {messageContainer.map((message, index) => (
-  <div
-    key={index}
-    style={{
-      alignSelf: message.sentBy === "loggedInUser" ? 'flex-end' : 'flex-start',
-      maxWidth: '70%',
-      backgroundColor: message.sentBy === "loggedInUser" ? '#DCF8C6' : '#FFFFFF',
-      padding: '10px',
-      borderRadius: '10px',
-      boxShadow: '0px 4px 4px rgba(0, 0, 0, 0.1)',
-      flexWrap: 'wrap',  // This should work
-      wordBreak: 'break-word',  // Add this for long words
-    }}
-  >
-    <Typography variant="body1" style={{ color: '#4E3629' }}>
-      {message.text}
-    </Typography>
-    <Typography
-      variant="caption"
-      style={{ color: '#777', textAlign: message.user === loggedInUser ? 'right' : 'left' }}
-    >
-      {new Date(message.timestamp).toLocaleTimeString()}
-    </Typography>
-  </div>
-))}
+            {messageContainer.map((message, index) => (
+              <div
+                key={index}
+                style={{
+                  alignSelf: message.sentBy === 'loggedInUser' ? 'flex-end' : 'flex-start',
+                  maxWidth: '70%',
+                  backgroundColor: message.sentBy === 'loggedInUser' ? '#DCF8C6' : '#FFFFFF',
+                  padding: '10px',
+                  borderRadius: '10px',
+                  boxShadow: '0px 4px 4px rgba(0, 0, 0, 0.1)',
+                  wordBreak: 'break-word',
+                }}
+              >
+                <Typography variant="body1" style={{ color: '#4E3629' }}>
+                  {message.text}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  style={{ color: '#777', textAlign: message.user === loggedInUser ? 'right' : 'left' }}
+                >
+                  {new Date(message.timestamp).toLocaleTimeString()}
+                </Typography>
+              </div>
+            ))}
 
             <div ref={messagesEndRef}></div>
           </div>

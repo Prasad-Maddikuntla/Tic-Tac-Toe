@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Button, Grid, Typography } from '@mui/material';
 import { styled } from '@mui/system';
+import { useAuth } from './Context';
+import { getSocketConnections } from './soketConnection';
 
 const BoardContainer = styled(Box)({
   display: 'flex',
@@ -17,18 +19,22 @@ const Title = styled(Typography)({
   fontSize: '2.5rem',
   fontWeight: 'bold',
   color: '#ecf0f1',
+  textAlign: 'center',
 });
 
-const Cell = styled(Button)(({ theme }) => ({
+const Cell = styled(Button)(({ theme, disabled }) => ({
   width: '100px',
   height: '100px',
   fontSize: '2rem',
   fontWeight: 'bold',
   border: `1px solid ${theme.palette.divider}`,
-  color: '#ecf0f1',
-  backgroundColor: '#34495e',
+  color: disabled ? '#7f8c8d' : '#ecf0f1',
+  backgroundColor: disabled ? '#7f8c8d' : '#34495e',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
   '&:hover': {
-    backgroundColor: '#1abc9c',
+    backgroundColor: !disabled && '#1abc9c',
   },
 }));
 
@@ -44,8 +50,30 @@ const ResetButton = styled(Button)({
 
 const TicTacToe = () => {
   const [board, setBoard] = useState(Array(9).fill(null));
-  const [isXNext, setIsXNext] = useState(true);
   const [winner, setWinner] = useState(null);
+  const { user, heads, opponent } = useAuth(); // Assuming user context has user info
+  const [myTurn, setMyTurn] = useState(heads);
+  const [isXNext, setIsXNext] = useState(heads);
+
+  const socket = getSocketConnections();
+
+  useEffect(() => {
+    socket.on('move', ({ index, symbol }) => {
+      setBoard((prevBoard) => {
+        const newBoard = [...prevBoard];
+        newBoard[index] = symbol;
+        return newBoard;
+      });
+      setMyTurn(true);
+    });
+
+    socket.on('reset', () => {
+      setBoard(Array(9).fill(null));
+      setIsXNext(true);
+      setWinner(null);
+      setMyTurn(true);
+    });
+  }, [socket]);
 
   const checkWinner = (newBoard) => {
     const lines = [
@@ -64,41 +92,56 @@ const TicTacToe = () => {
   };
 
   const handleClick = (index) => {
-    if (board[index] || winner) return;
+    if (board[index] || winner || !myTurn) return;
 
-    const newBoard = board.slice();
+    const newBoard = [...board];
     newBoard[index] = isXNext ? 'X' : 'O';
     setBoard(newBoard);
-    setIsXNext(!isXNext);
 
     const result = checkWinner(newBoard);
     if (result) {
       setWinner(result);
+      socket.emit('winner', result);
     }
+
+    socket.emit('move', { index, symbol: isXNext ? 'X' : 'O', opponent });
+    setIsXNext(!isXNext);
+    setMyTurn(false);
   };
 
   const handleReset = () => {
     setBoard(Array(9).fill(null));
     setIsXNext(true);
     setWinner(null);
+    setMyTurn(true);
+    socket.emit('reset');
   };
 
   return (
     <BoardContainer>
       <Title>Tic Tac Toe</Title>
-      <Grid container spacing={0} justifyContent="center" style={{ width: '300px' }}>
+      <Grid container spacing={1} style={{ width: '310px' }}>
         {board.map((cell, index) => (
           <Grid item xs={4} key={index}>
-            <Cell onClick={() => handleClick(index)}>
+            <Cell
+              onClick={() => handleClick(index)}
+              disabled={!myTurn || board[index]}
+            >
               {cell}
             </Cell>
           </Grid>
         ))}
       </Grid>
-      {winner && (
-        <Typography variant="h6" color="primary" style={{ marginTop: '20px', color: '#ecf0f1' }}>
+      {winner ? (
+        <Typography variant="h6" style={{ marginTop: '20px', color: '#ecf0f1' }}>
           Winner: {winner}
         </Typography>
+      ) : (
+        !myTurn && (
+          <Typography variant="h6" style={{ marginTop: '20px', color: '#ecf0f1' }}>
+            Waiting for opponent...
+          </Typography>
+        )
       )}
       <ResetButton variant="contained" onClick={handleReset}>
         Reset Game
@@ -106,5 +149,5 @@ const TicTacToe = () => {
     </BoardContainer>
   );
 };
-// hello
+
 export default TicTacToe;

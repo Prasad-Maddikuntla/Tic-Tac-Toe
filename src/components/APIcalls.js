@@ -46,7 +46,7 @@ const userApiCalls = {
       if (data.token) {
         // Store the token in localStorage
         localStorage.setItem('jwtToken', data.token);
-        localStorage.setItem('userDetails', JSON.stringify(data.user));
+        localStorage.setItem('userDetails', data.user);
 
       }
 
